@@ -1,0 +1,23 @@
+# NSE symbol (Yahoo Finance format) -> company name used for news search
+STOCKS = {
+    "RELIANCE.NS": "Reliance Industries",
+    "TCS.NS": "Tata Consultancy Services",
+    "HDFCBANK.NS": "HDFC Bank",
+    "ICICIBANK.NS": "ICICI Bank",
+    "INFY.NS": "Infosys",
+    "HINDUNILVR.NS": "Hindustan Unilever",
+    "ITC.NS": "ITC Limited",
+    "SBIN.NS": "State Bank of India",
+    "BHARTIARTL.NS": "Bharti Airtel",
+    "KOTAKBANK.NS": "Kotak Mahindra Bank",
+    "LT.NS": "Larsen & Toubro",
+    "AXISBANK.NS": "Axis Bank",
+    "BAJFINANCE.NS": "Bajaj Finance",
+    "MARUTI.NS": "Maruti Suzuki",
+    "SUNPHARMA.NS": "Sun Pharmaceutical",
+    "TITAN.NS": "Titan Company",
+    "ASIANPAINT.NS": "Asian Paints",
+    "WIPRO.NS": "Wipro",
+    "ADANIENT.NS": "Adani Enterprises",
+    "TATAMOTORS.NS": "Tata Motors",
+}

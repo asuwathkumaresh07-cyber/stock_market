@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tape &amp; Trend — India Market Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">TT</span>
+      <div class="brand-text">
+        <h1>Tape &amp; Trend</h1>
+        <p>India market signal, built from price momentum + news tone</p>
+      </div>
+    </div>
+    <div class="status" id="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">connecting…</span>
+    </div>
+  </header>
+
+  <div class="ticker-wrap" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-loading">loading live tape…</span>
+    </div>
+  </div>
+
+  <main>
+    <div class="toolbar">
+      <input id="searchBox" type="text" placeholder="Filter by symbol or company…" />
+      <div class="filters" id="filterButtons">
+        <button class="filter-btn active" data-filter="ALL">All</button>
+        <button class="filter-btn" data-filter="BUY">Buy</button>
+        <button class="filter-btn" data-filter="SELL">Sell</button>
+        <button class="filter-btn" data-filter="HOLD">Hold</button>
+      </div>
+      <button id="refreshBtn" class="refresh-btn">Refresh</button>
+    </div>
+
+    <section id="grid" class="grid">
+      <!-- cards injected by app.js -->
+    </section>
+
+    <p class="disclaimer">
+      Recommendations combine a trained XGBoost model (RSI, MACD, moving averages, volume,
+      returns, volatility) with FinBERT news-sentiment analysis. This is not investment advice —
+      model predictions can be wrong, and you should always do your own research before making
+      financial decisions.
+    </p>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
