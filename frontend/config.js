@@ -1,3 +1,4 @@
-// EDIT THIS after your backend is deployed.
-// Example: "https://stock-predictor-api.onrender.com"  (no trailing slash)
-window.API_BASE = "https://stock-market-kya6.onrender.com";
+window.API_BASE =
+  window.location.port === "5500"
+    ? "http://localhost:8000"
+    : window.location.origin;

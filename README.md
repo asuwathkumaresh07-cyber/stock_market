@@ -68,6 +68,14 @@ python -m http.server 5500
 Open http://localhost:5500. The dashboard polls the backend at `http://localhost:8000` — edit
 `API_BASE` at the top of `app.js` if you host the backend elsewhere.
 
+## Deploy to Render
+
+The included `render.yaml` deploys the FastAPI backend and serves the frontend from the same
+web service. Create a new Blueprint in Render using this GitHub repository; Render will build
+from the repository root and start the service with `backend.main:app`. The dashboard uses the
+same origin for API requests on Render, while local frontend development on port 5500 continues
+to use `http://localhost:8000`.
+
 ## API reference
 
 | Endpoint | Description |

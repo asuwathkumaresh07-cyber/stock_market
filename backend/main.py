@@ -1,31 +1,46 @@
 """
 main.py
 -------
-FastAPI backend exposing the stock recommendation engine.
+FastAPI backend exposing the stock recommendation engine and interactive chart API.
 
 Run locally:
     uvicorn main:app --reload --port 8000
-
-Endpoints:
-    GET  /                          -> health check
-    GET  /predict/{stock_symbol}    -> BUY/HOLD/SELL for one stock
-    POST /portfolio                 -> BUY/HOLD/SELL for a list of stocks
 """
 
-from fastapi import FastAPI, HTTPException
+from pathlib import Path
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from predictor import get_recommendation, get_news_sentiment
-from stocks import STOCKS
+try:
+    from predictor import (
+        get_recommendation,
+        get_news_sentiment,
+        get_stock_history,
+        get_market_indices,
+        predict_all_parallel,
+    )
+    from stocks import STOCKS, INDICES, get_display_name
+except ImportError:
+    from backend.predictor import (
+        get_recommendation,
+        get_news_sentiment,
+        get_stock_history,
+        get_market_indices,
+        predict_all_parallel,
+    )
+    from backend.stocks import STOCKS, INDICES, get_display_name
 
 app = FastAPI(
-    title="Stock Recommendation API",
-    description="XGBoost technical analysis + FinBERT sentiment -> BUY/HOLD/SELL",
-    version="1.0.0",
+    title="India Stock Market & Recommendation API",
+    description="Interactive Financial Graph + XGBoost Technical Analysis + News Sentiment",
+    version="2.0.0",
 )
 
-# Allow the React frontend (any origin during development) to call this API.
+# Allow CORS for development and cross-origin calls
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,26 +49,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
 
 class PortfolioRequest(BaseModel):
     symbols: list[str]
 
 
-@app.get("/")
-def health_check():
-    return {"status": "ok", "message": "Stock Recommendation API is running"}
-
-
 @app.get("/api/health")
 def api_health_check():
-    return {"status": "ok", "message": "Stock Recommendation API is running"}
+    return {
+        "status": "ok",
+        "message": "Indian Stock Market & Predictor API is operational",
+        "version": "2.0.0",
+    }
+
+
+@app.get("/api/indices")
+def market_indices():
+    """Returns live snapshot and mini-sparklines for pure NSE indices: NIFTY 50, BANK NIFTY, NIFTY IT, NIFTY 100."""
+    try:
+        return {"indices": get_market_indices()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch market indices: {e}")
+
+
+@app.get("/api/history/{stock_symbol}")
+def stock_history(
+    stock_symbol: str,
+    period: str = Query("1y", description="Time period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 5y, max"),
+    interval: Optional[str] = Query(None, description="Bar interval: 5m, 15m, 1h, 1d, 1wk, 1mo"),
+):
+    """
+    Returns full OHLCV candlestick data, Volume, SMA20, SMA50, Bollinger Bands,
+    RSI, MACD, and AI Forecast projections for the interactive chart.
+    """
+    try:
+        data = get_stock_history(stock_symbol, period=period, interval=interval)
+        return data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching chart history: {e}")
 
 
 @app.get("/predict/{stock_symbol}")
 @app.get("/api/predict/{stock_symbol}")
 def predict(stock_symbol: str):
     """
-    Returns technical (XGBoost) + sentiment (FinBERT) based recommendation
+    Returns technical (XGBoost) + sentiment based recommendation
     for a single stock. Example: GET /api/predict/RELIANCE.NS
     """
     try:
@@ -67,18 +111,23 @@ def predict(stock_symbol: str):
 
 @app.get("/api/stocks")
 def list_stocks():
-    return {"stocks": [{"symbol": s, "name": n} for s, n in STOCKS.items()]}
+    """Returns tracked NSE symbols and indices."""
+    stocks_list = [{"symbol": s, "name": n, "type": "stock"} for s, n in STOCKS.items()]
+    indices_list = [{"symbol": s, "name": n, "type": "index"} for s, n in INDICES.items()]
+    return {"stocks": stocks_list, "indices": indices_list}
 
 
 @app.get("/api/news/{stock_symbol}")
 def news(stock_symbol: str):
-    """Per-headline FinBERT sentiment, used by the dashboard's news modal."""
+    """Per-headline sentiment, used by the dashboard's news modal."""
     symbol = stock_symbol.upper()
     try:
         sentiment = get_news_sentiment(symbol)
         return {
             "symbol": symbol,
-            "company": STOCKS.get(symbol, symbol),
+            "company": get_display_name(symbol),
+            "sentiment_score": sentiment.get("sentiment_score", 0.5),
+            "label": sentiment.get("label", "Neutral"),
             "articles": sentiment.get("headlines", []),
         }
     except Exception as e:
@@ -87,14 +136,11 @@ def news(stock_symbol: str):
 
 @app.get("/api/predict-all")
 def predict_all():
-    """Runs the full XGBoost + FinBERT recommendation across every tracked stock."""
-    results, errors = [], []
-    for symbol in STOCKS:
-        try:
-            results.append(get_recommendation(symbol))
-        except Exception as e:
-            errors.append({"symbol": symbol, "error": str(e)})
-    return {"results": results, "errors": errors}
+    """Runs recommendation across all tracked NSE stocks concurrently."""
+    try:
+        return predict_all_parallel(max_workers=8)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Bulk prediction failed: {e}")
 
 
 @app.post("/portfolio")
@@ -111,3 +157,13 @@ def portfolio(request: PortfolioRequest):
         except Exception as e:
             results.append({"stock": symbol.upper(), "error": str(e)})
     return {"portfolio": results}
+
+
+# Mount frontend static files so visiting http://localhost:8000 also serves the dashboard directly
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+else:
+    @app.get("/")
+    def health_check():
+        return {"status": "ok", "message": "Stock Recommendation API is running"}
+

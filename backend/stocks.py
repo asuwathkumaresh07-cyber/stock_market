@@ -1,4 +1,10 @@
-# NSE symbol (Yahoo Finance format) -> company name used for news search
+"""
+stocks.py
+---------
+Registry of National Stock Exchange of India (NSE) symbols and indices.
+Exclusively tracks pure NSE India symbols (all ending in .NS) with NO BSE stocks.
+"""
+
 STOCKS = {
     "RELIANCE.NS": "Reliance Industries",
     "TCS.NS": "Tata Consultancy Services",
@@ -21,3 +27,23 @@ STOCKS = {
     "ADANIENT.NS": "Adani Enterprises",
     "TATAMOTORS.NS": "Tata Motors",
 }
+
+# Pure NSE Indices (NO BSE / SENSEX)
+INDICES = {
+    "^NSEI": "NIFTY 50",
+    "^NSEBANK": "BANK NIFTY",
+    "^CNXIT": "NIFTY IT",
+    "^CNX100": "NIFTY 100",
+}
+
+def get_display_name(symbol: str) -> str:
+    sym = symbol.upper()
+    if sym in INDICES:
+        return INDICES[sym]
+    if sym in STOCKS:
+        return STOCKS[sym]
+    if not sym.endswith(".NS") and not sym.startswith("^"):
+        sym_ns = f"{sym}.NS"
+        if sym_ns in STOCKS:
+            return STOCKS[sym_ns]
+    return sym.replace(".NS", "")
