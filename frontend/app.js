@@ -1,5 +1,5 @@
 /**
- * Bharat Market Pulse — Main Frontend Controller
+ * Tape & Trend — Main Frontend Controller
  * Interactive TradingView Financial Chart + AI Predictor Engine
  * Dual-Theme (Dark / Light) Glassmorphic System
  */
