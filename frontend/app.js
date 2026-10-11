@@ -374,6 +374,16 @@ function createSeries(chart, type, options = {}) {
   return null;
 }
 
+function resizeChartToContainer(chart, container) {
+  if (!chart || !container) return;
+
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  if (width > 0 && height > 0) {
+    chart.applyOptions({ width, height });
+  }
+}
+
 // ==========================================================================
 // LIGHTWEIGHT CHARTS INITIALIZATION
 // ==========================================================================
@@ -492,11 +502,11 @@ function initCharts() {
   // 2. Create RSI Sub-Chart
   rsiChart = LightweightCharts.createChart(rsiContainer, {
     ...commonOptions,
-    width: rsiContainer.clientWidth,
+    width: chartContainer.clientWidth,
     height: 140,
     rightPriceScale: {
       ...commonOptions.rightPriceScale,
-      autoScale: false,
+      autoScale: true,
       scaleMargins: { top: 0.1, bottom: 0.1 },
     },
   });
@@ -531,7 +541,7 @@ function initCharts() {
   // 3. Create MACD Sub-Chart
   macdChart = LightweightCharts.createChart(macdContainer, {
     ...commonOptions,
-    width: macdContainer.clientWidth,
+    width: chartContainer.clientWidth,
     height: 140,
   });
 
@@ -558,9 +568,9 @@ function initCharts() {
 
   // Window Resize Responsive Handler
   window.addEventListener("resize", () => {
-    if (mainChart) mainChart.applyOptions({ width: chartContainer.clientWidth });
-    if (rsiChart) rsiChart.applyOptions({ width: rsiContainer.clientWidth });
-    if (macdChart) macdChart.applyOptions({ width: macdContainer.clientWidth });
+    resizeChartToContainer(mainChart, chartContainer);
+    resizeChartToContainer(rsiChart, rsiContainer);
+    resizeChartToContainer(macdChart, macdContainer);
   });
 
   // Apply initial theme options and series colors
@@ -741,7 +751,10 @@ function renderChartData(data) {
   if (indicatorsState.rsi) {
     rsiContainer.classList.remove("hidden");
     if (rsiLineSeries) rsiLineSeries.setData(rsi);
-    if (rsiChart) rsiChart.timeScale().fitContent();
+    if (rsiChart) {
+      resizeChartToContainer(rsiChart, rsiContainer);
+      rsiChart.timeScale().fitContent();
+    }
   } else {
     rsiContainer.classList.add("hidden");
   }
@@ -759,7 +772,10 @@ function renderChartData(data) {
         }))
       );
     }
-    if (macdChart) macdChart.timeScale().fitContent();
+    if (macdChart) {
+      resizeChartToContainer(macdChart, macdContainer);
+      macdChart.timeScale().fitContent();
+    }
   } else {
     macdContainer.classList.add("hidden");
   }
