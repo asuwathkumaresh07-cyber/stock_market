@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tape &amp; Trend — Indian Stock Market Graph &amp; AI Predictor</title>
+  
+  <!-- Anti-FOUC Theme Initializer -->
+  <script>
+    (function() {
+      try {
+        const saved = localStorage.getItem('bharat_market_theme');
+        const prefDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved || (prefDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = theme;
+        if (theme === 'light') {
+          document.documentElement.style.backgroundColor = '#f8fafc';
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Modern Dual-Theme Glassmorphism CSS -->
+  <link rel="stylesheet" href="frontend/style.css" />
+  
+  <!-- Lightweight Charts (TradingView) -->
+  <script src="frontend/lightweight-charts.standalone.js"></script>
+  <!-- Fallback CDN in case local fails -->
+  <script>
+    if (!window.LightweightCharts) {
+      document.write('<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Translucent Glassmorphic Video Background -->
+  <div class="site-bg" role="img" aria-label="Stylised globe of Earth rendered as a purple dot matrix against a starfield, slowly rotating" aria-hidden="true">
+    <video class="bg-video is-active" id="bgVideoA" autoplay muted loop playsinline preload="auto" disablepictureinpicture poster="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/82e7eb75-c65f-490a-99b5-f3d1cad54200.webp">
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104036_bd6924f6-3c8e-417e-8465-6d03c8c2e9e6.mp4" type="video/mp4">
+    </video>
+    <video class="bg-video" id="bgVideoB" muted loop playsinline preload="auto" disablepictureinpicture poster="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/82e7eb75-c65f-490a-99b5-f3d1cad54200.webp">
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104036_bd6924f6-3c8e-417e-8465-6d03c8c2e9e6.mp4" type="video/mp4">
+    </video>
+    <div class="site-bg-overlay"></div>
+  </div>
+
+  <!-- Top Navigation & Brand Header -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge">
+          <span class="brand-icon-wrap" aria-hidden="true">
+            <svg class="brand-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+              <polyline points="16 7 22 7 22 13"></polyline>
+            </svg>
+          </span>
+          <span class="brand-text-logo">NSE INDIA</span>
+        </div>
+        <div class="brand-info">
+          <h1>Tape &amp; Trend</h1>
+          <p class="tagline">Indian Stock Market Graph · XGBoost AI Engine · Live News Sentiment</p>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <div class="quick-search-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg class="search-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input id="quickSearchInput" type="text" placeholder="Quick search NSE symbol (e.g. RELIANCE, TCS)..." autocomplete="off" />
+          <div id="quickSearchResults" class="quick-search-dropdown hidden"></div>
+        </div>
+
+        <div class="status-pill" id="statusPill">
+          <span class="pulse-dot" id="statusDot"></span>
+          <span id="statusText">Connecting to API…</span>
+        </div>
+
+        <!-- Light / Dark Mode Toggle Button -->
+        <button id="themeToggleBtn" class="action-btn theme-toggle-btn" aria-label="Toggle dark and light theme" title="Toggle Theme (Dark / Light)">
+          <span class="theme-icon-slot" aria-hidden="true">
+            <!-- Sun Icon (shown in dark mode to switch to light) -->
+            <svg class="theme-svg sun-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon Icon (shown in light mode to switch to dark) -->
+            <svg class="theme-svg moon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+          <span class="theme-toggle-label" id="themeToggleLabel">Theme</span>
+        </button>
+
+        <!-- Refresh Button -->
+        <button id="globalRefreshBtn" class="action-btn" title="Refresh all market data & predictions">
+          <svg class="refresh-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Indian Benchmark Indices Bar -->
+  <section class="indices-banner" aria-label="Indian Market Benchmarks">
+    <div class="indices-container" id="indicesContainer">
+      <div class="index-chip skeleton"><div class="chip-name">NIFTY 50</div><div class="chip-val">····</div></div>
+      <div class="index-chip skeleton"><div class="chip-name">NIFTY 100</div><div class="chip-val">····</div></div>
+      <div class="index-chip skeleton"><div class="chip-name">BANK NIFTY</div><div class="chip-val">····</div></div>
+      <div class="index-chip skeleton"><div class="chip-name">NIFTY IT</div><div class="chip-val">····</div></div>
+    </div>
+  </section>
+
+  <!-- Ticker Tape Ribbon -->
+  <div class="ticker-ribbon" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-loading">Loading live Indian stock market tape…</span>
+    </div>
+  </div>
+
+  <main class="main-content">
+
+    <!-- HERO SECTION: Interactive Indian Stock Market Chart -->
+    <section class="chart-hero-card" id="chartHero">
+      
+      <!-- Chart Header & Active Stock Info -->
+      <div class="chart-header">
+        <div class="stock-active-info">
+          <div class="stock-title-row">
+            <h2 id="chartStockName">Reliance Industries</h2>
+            <span class="stock-symbol-tag" id="chartStockSymbol">RELIANCE.NS</span>
+            <span class="exchange-tag">NSE INDIA</span>
+          </div>
+
+          <div class="stock-price-row">
+            <div class="price-hero" id="chartPrice">₹1,170.30</div>
+            <div class="change-hero up" id="chartChange">+₹12.40 (+1.07%)</div>
+            <div class="day-range-pill" id="chartDayRange">Day: ₹1,160.20 - ₹1,179.00</div>
+          </div>
+        </div>
+
+        <div class="chart-ai-badge" id="chartAiBadge">
+          <div class="ai-signal-label-row">
+            <svg class="ai-spark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+            </svg>
+            <div class="ai-signal-label">AI PREDICTION SIGNAL</div>
+          </div>
+          <div class="ai-signal-val BUY" id="chartSignalText">BUY</div>
+          <div class="ai-confidence-sub" id="chartConfidenceText">Confidence: 74% · XGBoost + FinBERT</div>
+          <div class="ai-target-setup-strip" id="chartTargetSetupStrip"></div>
+        </div>
+      </div>
+
+      <!-- Chart Toolbar Controls -->
+      <div class="chart-controls-bar">
+        
+        <!-- Popular Stock & Index Quick Tabs (Pure NSE) -->
+        <div class="quick-stock-tabs" id="quickStockTabs">
+          <button class="quick-tab" data-symbol="^NSEI">NIFTY 50</button>
+          <button class="quick-tab" data-symbol="^CNX100">NIFTY 100</button>
+          <button class="quick-tab" data-symbol="^NSEBANK">BANK NIFTY</button>
+          <button class="quick-tab active" data-symbol="RELIANCE.NS">RELIANCE</button>
+          <button class="quick-tab" data-symbol="TCS.NS">TCS</button>
+          <button class="quick-tab" data-symbol="HDFCBANK.NS">HDFCBANK</button>
+          <button class="quick-tab" data-symbol="INFY.NS">INFY</button>
+          <button class="quick-tab" data-symbol="TATAMOTORS.NS">TATAMOTORS</button>
+          <button class="quick-tab" data-symbol="SBIN.NS">SBIN</button>
+        </div>
+
+        <!-- Timeframe Selectors -->
+        <div class="timeframe-group" id="timeframeGroup">
+          <button class="tf-btn" data-period="1d">1D</button>
+          <button class="tf-btn" data-period="5d">5D</button>
+          <button class="tf-btn" data-period="1mo">1M</button>
+          <button class="tf-btn" data-period="3mo">3M</button>
+          <button class="tf-btn" data-period="6mo">6M</button>
+          <button class="tf-btn active" data-period="1y">1Y</button>
+          <button class="tf-btn" data-period="5y">5Y</button>
+        </div>
+
+        <!-- Chart Type & Indicator Toggles -->
+        <div class="chart-toggles-group">
+          <!-- Type -->
+          <div class="segmented-control">
+            <button id="btnCandles" class="seg-btn active" title="Candlestick Chart">
+              <svg class="seg-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="9" y1="2" x2="9" y2="6"></line>
+                <rect x="7" y="6" width="4" height="12" rx="1" fill="currentColor"></rect>
+                <line x1="9" y1="18" x2="9" y2="22"></line>
+                <line x1="16" y1="4" x2="16" y2="8"></line>
+                <rect x="14" y="8" width="4" height="8" rx="1" fill="currentColor"></rect>
+                <line x1="16" y1="16" x2="16" y2="20"></line>
+              </svg>
+              <span>Candles</span>
+            </button>
+            <button id="btnArea" class="seg-btn" title="Line Area Chart">
+              <svg class="seg-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span>Area</span>
+            </button>
+          </div>
+
+          <!-- Indicators Dropdown / Buttons -->
+          <div class="indicators-buttons">
+            <button class="ind-pill active" id="toggleSMA20" data-ind="sma20" title="20-Day Simple Moving Average">
+              <span class="color-dot sma20-dot"></span>SMA 20
+            </button>
+            <button class="ind-pill active" id="toggleSMA50" data-ind="sma50" title="50-Day Simple Moving Average">
+              <span class="color-dot sma50-dot"></span>SMA 50
+            </button>
+            <button class="ind-pill" id="toggleBB" data-ind="bb" title="Bollinger Bands (20, 2)">
+              <span class="color-dot bb-dot"></span>Bollinger
+            </button>
+            <button class="ind-pill active" id="toggleForecast" data-ind="forecast" title="AI XGBoost Forward Forecast Projection Corridor">
+              <span class="color-dot forecast-dot"></span>AI Forecast
+            </button>
+            <button class="ind-pill" id="toggleRSI" data-ind="rsi" title="Relative Strength Index (14)">
+              <span class="color-dot rsi-dot"></span>RSI
+            </button>
+            <button class="ind-pill" id="toggleMACD" data-ind="macd" title="MACD (12, 26, 9)">
+              <span class="color-dot macd-dot"></span>MACD
+            </button>
+          </div>
+
+          <button id="btnFullscreen" class="icon-toggle-btn" title="Toggle Fullscreen Chart" aria-label="Toggle Fullscreen">
+            <svg class="fs-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Floating Chart Tooltip & Legend Bar -->
+      <div class="chart-legend" id="chartLegend">
+        <span class="legend-item" id="legDate"><span class="lbl">Date:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legOpen"><span class="lbl">O:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legHigh"><span class="lbl">H:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legLow"><span class="lbl">L:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legClose"><span class="lbl">C:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legVol"><span class="lbl">Vol:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legSMA20"><span class="lbl" style="color:var(--orange)">SMA20:</span> <span class="val">--</span></span>
+        <span class="legend-item" id="legSMA50"><span class="lbl" style="color:var(--light-blue)">SMA50:</span> <span class="val">--</span></span>
+      </div>
+
+      <!-- Interactive Chart Viewports -->
+      <div class="chart-canvas-wrapper" id="chartCanvasWrapper">
+        <div id="chartContainer" class="main-chart-container"></div>
+        <div id="rsiContainer" class="sub-chart-container hidden">
+          <div class="subchart-title">RSI (14) — Overbought (70) / Oversold (30)</div>
+        </div>
+        <div id="macdContainer" class="sub-chart-container hidden">
+          <div class="subchart-title">MACD (12, 26, 9) — MACD Line &amp; Signal</div>
+        </div>
+        <div id="chartLoadingOverlay" class="chart-loading-overlay hidden">
+          <div class="spinner"></div>
+          <span>Loading historical data for Indian market…</span>
+        </div>
+      </div>
+
+      <!-- Stock Metrics & AI Analysis Bar -->
+      <div class="chart-stats-footer" id="chartStatsFooter">
+        
+        <!-- 52-Week Range Bar -->
+        <div class="stat-box range-box">
+          <div class="stat-lbl">52-Week Range</div>
+          <div class="range-meter">
+            <span class="range-min" id="stat52Low">₹--</span>
+            <div class="meter-bar">
+              <div class="meter-fill" id="meter52Fill" style="left: 0%; width: 50%;"></div>
+              <div class="meter-pin" id="meter52Pin" style="left: 50%;"></div>
+            </div>
+            <span class="range-max" id="stat52High">₹--</span>
+          </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="stat-box">
+          <div class="stat-lbl">Day Range</div>
+          <div class="stat-val" id="statDayRange">₹-- - ₹--</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-lbl">Avg Volume</div>
+          <div class="stat-val" id="statAvgVol">--</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-lbl">20D Volatility</div>
+          <div class="stat-val" id="statVolat">--%</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-lbl">Current RSI</div>
+          <div class="stat-val" id="statRSI">--</div>
+        </div>
+
+        <div class="stat-box ai-score-box">
+          <div class="stat-lbl">XGBoost Prob.</div>
+          <div class="stat-val highlight-cyan" id="statTechScore">--%</div>
+        </div>
+
+        <div class="stat-box ai-score-box">
+          <div class="stat-lbl">News Sentiment</div>
+          <div class="stat-val" id="statSentScore">--</div>
+        </div>
+
+      </div>
+
+      <!-- AI Rationale Pills -->
+      <div class="ai-rationale-strip" id="aiRationaleStrip">
+        <span class="rationale-tag-label">
+          <svg class="ai-spark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+          </svg>
+          AI Key Drivers:
+        </span>
+        <div class="rationale-tags" id="rationaleTags">
+          <span class="tag">Analyzing technical indicators…</span>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- SECTION: NSE Screener & AI Predictions Grid -->
+    <section class="screener-section">
+      <div class="screener-header">
+        <div>
+          <h2>NSE Stock Screener</h2>
+          <p class="screener-subtitle">Your 20 selected NSE stocks · Live XGBoost AI Targets &amp; News Sentiment</p>
+        </div>
+
+        <!-- Screener Controls -->
+        <div class="screener-toolbar">
+          <div class="search-input-wrap">
+            <input id="searchBox" type="text" placeholder="Filter by symbol or company…" />
+          </div>
+
+          <div class="filters-pills" id="filterButtons">
+            <button class="filter-pill active" data-filter="ALL">All (20)</button>
+            <button class="filter-pill pill-buy" data-filter="BUY">Buy</button>
+            <button class="filter-pill pill-hold" data-filter="HOLD">Hold</button>
+            <button class="filter-pill pill-sell" data-filter="SELL">Sell</button>
+            <button class="filter-pill" data-filter="GAINERS">Gainers</button>
+            <button class="filter-pill" data-filter="LOSERS">Losers</button>
+          </div>
+
+          <div class="sort-select-wrap">
+            <label for="sortSelect">Sort:</label>
+            <select id="sortSelect">
+              <option value="conf_desc">Confidence (High to Low)</option>
+              <option value="change_desc">% Gain (Top to Bottom)</option>
+              <option value="change_asc">% Loss (Top to Bottom)</option>
+              <option value="price_desc">Price (High to Low)</option>
+              <option value="name_asc">Name (A to Z)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stocks Grid -->
+      <div id="grid" class="stocks-grid">
+        <!-- Rendered by app.js -->
+      </div>
+
+      <div class="disclaimer-card">
+        <div class="disclaimer-icon-wrap" aria-hidden="true">
+          <svg class="disclaimer-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="disclaimer-text">
+          <strong>Educational &amp; Research Tool:</strong> Predictions combine an XGBoost ML classifier (evaluating RSI, MACD, SMA20, SMA50, Volume, Return, and Volatility) with FinBERT / VADER news tone analysis. Financial markets involve substantial risk. Past model performance is no guarantee of future returns. Always perform your own due diligence before trading.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modern HTML5 Dialog Modal (closedby="any" compliant with modern web guidance) -->
+  <dialog id="analysisModal" class="analysis-dialog" closedby="any" aria-labelledby="modalStockTitle">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div>
+          <h2 id="modalStockTitle">Stock Details</h2>
+          <div class="dialog-sub" id="modalStockSub">As of today · AI Evaluation</div>
+        </div>
+        <button class="dialog-close-btn" id="modalCloseBtn" aria-label="Close dialog">
+          <svg class="dialog-close-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="dialog-body" id="modalBody">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Application Script -->
+  <script src="frontend/config.js"></script>
+  <script src="frontend/app.js"></script>
+</body>
+</html>
